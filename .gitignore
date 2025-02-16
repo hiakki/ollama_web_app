@@ -1,6 +1,7 @@
 # ---- General ----
 .DS_Store
 Thumbs.db
+node_modules
 
 # ---- Node.js (Frontend) ----
 frontend/node_modules/

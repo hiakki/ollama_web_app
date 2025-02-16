@@ -1,115 +1,174 @@
 import React, { useState, useEffect } from "react";
-import ReactMarkdown from "react-markdown"; // Import react-markdown
+import ReactMarkdown from "react-markdown";
 
 function App() {
   const [models, setModels] = useState([]);
   const [selectedModel, setSelectedModel] = useState("");
   const [prompt, setPrompt] = useState("");
-  const [response, setResponse] = useState("");
-  const [history, setHistory] = useState([]); // Stores all responses
+  const [history, setHistory] = useState([]); // Stores conversation history
 
   const backendURL = process.env.REACT_APP_BACKEND_URL || "http://localhost:8080";
 
-  // Fetch available models on load
   useEffect(() => {
     fetch(backendURL + "/models")
       .then((res) => res.json())
       .then((data) => {
         setModels(data.models);
-        setSelectedModel(data.models[0] || ""); // Select first model
+        setSelectedModel(data.models[0] || "");
       })
       .catch((error) => console.error("Error fetching models:", error));
   }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setResponse(""); // Clear previous response
-  
+    if (!prompt.trim()) return;
+
+    const newHistory = [...history, { type: "user", text: prompt }];
+    setHistory(newHistory);
+    setPrompt("");
+
     const response = await fetch(backendURL + "/generate", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: selectedModel,
-        prompt: prompt,
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: selectedModel, prompt })
     });
-  
+
     if (!response.body) return;
-  
+
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
-    let fullResponse = "";
+    let botResponse = "";
 
-    // Read the stream line by line
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      const text = decoder.decode(value);
-      fullResponse += text;
-      setResponse(fullResponse); // Update response state as it streams
+      botResponse += decoder.decode(value);
+      setHistory([...newHistory, { type: "bot", text: botResponse }]);
     }
-
-    // Store the final response in history
-    setHistory((prevHistory) => [{ prompt, response: fullResponse }, ...prevHistory]);
   };
-  
-  return (
-    <div style={{ maxWidth: "100%", margin: "auto", padding: "20px", fontFamily: "Arial, sans-serif" }}>
-      <h2>Ollama AI Chat</h2>
-      
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-        <label>Select Model:</label>
-        <select value={selectedModel} onChange={(e) => setSelectedModel(e.target.value)}>
-          {models.map((model) => (
-            <option key={model} value={model}>{model}</option>
-          ))}
-        </select>
 
-        <label>Enter Prompt:</label>
+  return (
+    <div className="chat-container">
+      <h2 className="title">Ollama AI Chat</h2>
+      <select value={selectedModel} onChange={(e) => setSelectedModel(e.target.value)} className="model-select">
+        {models.map((model) => (
+          <option key={model} value={model}>{model}</option>
+        ))}
+      </select>
+      <div className="chat-box">
+        {history.map((msg, index) => (
+          <div key={index} style={{
+            alignSelf: msg.type === "user" ? "flex-end" : "flex-start",
+            background: msg.type === "user" ? "#0084ff" : "#f1f0f0",
+            color: msg.type === "user" ? "white" : "black",
+            padding: "10px",
+            maxWidth: "75%",
+            border: "1px solid #ddd"
+          }}>
+            {msg.type === "bot" ? <ReactMarkdown>{msg.text}</ReactMarkdown> : msg.text}
+          </div>
+        ))}
+      </div>
+      <form onSubmit={handleSubmit} className="input-area">
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          rows="3"
-          placeholder="Type your question..."
-        ></textarea>
-
-        <button type="submit" style={{ padding: "10px", background: "blue", color: "white", cursor: "pointer" }}>
-          Generate
-        </button>
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault(); // Prevents new line
+              handleSubmit(e); // Calls submit function
+            }
+          }}
+          rows="2"
+          placeholder="Ask me anything..."
+        />
+        <button type="submit">Send</button>
       </form>
-
-      {response && (
-        <div style={{ marginTop: "30px", padding: "10px", border: "1px solid #ddd", background: "#eef", maxHeight: "300px", overflowY: "auto" }}>
-          <h4>Response:</h4>
-          <ReactMarkdown>{response}</ReactMarkdown> {/* Render markdown properly */}
-        </div>
-      )}
-
-      {/* History Section */}
-      {history.length > 0 && (
-        <div style={{ marginTop: "30px", padding: "10px", border: "1px solid #ddd", background: "#eef", maxHeight: "300px", overflowY: "auto" }}>
-          <h4>Previous Queries:</h4>
-          {history.map((item, index) => (
-            <div key={index} style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>
-              <strong>Previous Prompt:</strong> {item.prompt}
-              <br />
-              <strong>Previous Response:</strong>
-              <ReactMarkdown style={{
-                whiteSpace: "pre-wrap", wordWrap: "break-word", overflowWrap: "break-word",
-                background: "#f5f5f5", padding: "10px", borderRadius: "5px", maxWidth: "100%",
-                overflowX: "auto"
-              }}>
-                {item.response}
-              </ReactMarkdown>
-            </div>
-          ))}
-        </div>
-      )}
-
     </div>
   );
 }
 
 export default App;
+
+
+/* CSS for responsive design */
+const styles = `
+  html, body {
+    height: 100dvh; /* Dynamic height to adjust when the keyboard opens */
+    display: flex;
+    flex-direction: column;
+  }
+  .chat-container {
+    display: flex;
+    flex-direction: column;
+    width: 90%;
+    max-width: 800px;
+    margin: auto;
+    height: 90vh;
+    border-radius: 10px;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+  }
+  .title {
+    text-align: center;
+    margin: 10px 0;
+  }
+  .chat-box {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: #f5f5f5;
+    border-radius: 10px;
+  }
+  .model-select {
+    width: 50%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    justify-content: center;
+    align-self: center;
+    margin-bottom: 10px;
+  }
+  .input-area {
+    display: flex;
+    padding: 10px;
+    gap: 10px;
+    background: white;
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1); /* Subtle shadow for visibility */
+  }
+  textarea {
+    flex: 1;
+    resize: none;
+    min-height: 40px;
+    max-height: 120px;
+    overflow-y: auto;
+  }
+  button {
+    padding: 10px;
+    background: blue;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+    width: 100px;
+  }
+  @media (max-width: 600px) {
+    .chat-container {
+      width: 100%;
+      height: 100vh;
+      padding: 5px;
+    }
+  }
+`;
+
+const styleSheet = document.createElement("style");
+styleSheet.type = "text/css";
+styleSheet.innerText = styles;
+document.head.appendChild(styleSheet);

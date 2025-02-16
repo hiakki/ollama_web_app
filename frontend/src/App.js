@@ -101,10 +101,9 @@ const styles = `
   .chat-container {
     display: flex;
     flex-direction: column;
-    width: 90%;
-    max-width: 800px;
+    width: 100%;
     margin: auto;
-    height: 90vh;
+    height: 100vh;
     border-radius: 10px;
     overflow: hidden;
     font-family: Arial, sans-serif;
@@ -112,6 +111,15 @@ const styles = `
   .title {
     text-align: center;
     margin: 10px 0;
+  }
+  .model-select {
+    width: 50%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    justify-content: center;
+    align-self: center;
+    margin-bottom: 10px;
   }
   .chat-box {
     flex: 1;
@@ -122,15 +130,6 @@ const styles = `
     gap: 10px;
     background: #f5f5f5;
     border-radius: 10px;
-  }
-  .model-select {
-    width: 50%;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    justify-content: center;
-    align-self: center;
-    margin-bottom: 10px;
   }
   .input-area {
     display: flex;
@@ -144,11 +143,11 @@ const styles = `
     box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1); /* Subtle shadow for visibility */
   }
   textarea {
-    flex: 1;
     resize: none;
     min-height: 40px;
     max-height: 120px;
     overflow-y: auto;
+    width: 80%;
   }
   button {
     padding: 10px;
@@ -157,7 +156,7 @@ const styles = `
     border: none;
     cursor: pointer;
     border-radius: 5px;
-    width: 100px;
+    width: 15%;
   }
   @media (max-width: 600px) {
     .chat-container {
